@@ -14,7 +14,7 @@ namespace URLPreviewLib
 		private struct SearchTag
 		{
 			public string tag;
-			public TagParseMethod parseMethod;
+			public ParserState parseMethod;
 		}
 
 		/// <summary>
@@ -23,10 +23,10 @@ namespace URLPreviewLib
 		/// </summary>
 		private static SearchTag[] searchTags = 
 		{
-			new SearchTag {tag = "title", parseMethod = TagParseMethod.Content},
-			new SearchTag {tag = "head", parseMethod = TagParseMethod.None},
-			new SearchTag {tag = "meta", parseMethod = TagParseMethod.Attributes},
-			new SearchTag {tag = "img", parseMethod = TagParseMethod.Attributes}
+			new SearchTag {tag = "title", parseMethod = ParserState.Content},
+			new SearchTag {tag = "head", parseMethod = ParserState.None},
+			new SearchTag {tag = "meta", parseMethod = ParserState.TagAttributes},
+			new SearchTag {tag = "img", parseMethod = ParserState.TagAttributes}
 		};
 
 		/// <summary>
@@ -59,13 +59,13 @@ namespace URLPreviewLib
 		}
 
 		/// <summary>
-		/// Byte enum of the ways a tag could be parsed
+		/// Byte enum identifying the current location of the parser
 		/// </summary>
-		private enum TagParseMethod : byte
+		private enum ParserLocation : byte
 		{
-			None,
-			Attributes,
-			Content,
+			HTML,
+			Comment,
+			String,
 		}
 
 		/// <summary>
@@ -110,13 +110,13 @@ namespace URLPreviewLib
 				Console.WriteLine("Read from stream: " + swWatch.ElapsedMilliseconds.ToString());
 
 				swWatch = Stopwatch.StartNew();
-				for(int x = 0; x < 10000; x++)
+				//for(int x = 0; x < 10000; x++)
 				{
 					result = ParseResponseString(str);
 				}
 				swWatch.Stop();
 
-				Console.WriteLine("Parse (average of 10000): " + (swWatch.ElapsedMilliseconds / 10000).ToString());
+				Console.WriteLine("Parse (average of 10000): " + (swWatch.ElapsedMilliseconds /*/ 10000*/).ToString());
 				return result;
 			}
 
@@ -240,11 +240,17 @@ namespace URLPreviewLib
 		 */
 		#endregion
 
+		/// <summary>
+		/// Parses a given string, attempts to extract useful data for a URL Preview
+		/// </summary>
+		/// <param name="str">The string to extract data from</param>
+		/// <returns>A URLPreview or null</returns>
 		private static URLPreview ParseResponseString(String str)
 		{
+			URLPreview preview = new URLPreview();
+
 			bool conditionMetTitle = false;
 			bool conditionMetImage = false;
-			bool conditionMetDescription = false;
 
 			string title = String.Empty;
 			string imageUrl = String.Empty;
@@ -255,113 +261,118 @@ namespace URLPreviewLib
 			//{
 				bool ignoreTag = false;
 				int tagIndex = -1;
-				ParserState previousState = ParserState.None;
 				ParserState currentState = ParserState.None;
-				TagParseMethod currentMethod = TagParseMethod.None;
-				char[] previousChar = { 'a', 'a' };
+				ParserLocation currentLocation = ParserLocation.HTML;
+				char previousChar = 'a';
 				char currentChar = 'a';
 				string currentTag = "";
 				string currentTagContent = "";
 
 				for(int x = 0; x < strLength; x++)
 				{
-					previousChar[1] = previousChar[0];
-					previousChar[0] = currentChar;
+					previousChar = currentChar;
 					currentChar = (char)str[x];
 
-					// Try to find the tags we want
-					if(currentState == ParserState.TagAttributes && currentMethod == TagParseMethod.Attributes)
+					// There is a very specific order here
+					// 1. Check if we are in a comment (comments are always ignored)
+					// 2. Check if we are in a string, if we are check if the string doesn't end here
+					//		2.5 Check if we're parsing content, if we are we want this string data
+					// 3. Check if we are ignoring a tag, if we are we check if the tag wasn't closed
+					// 4. If we aren't ignoring a tag, we handle the rest
+
+					// Check if we are still in a comment or string
+					if(currentLocation == ParserLocation.Comment)
 					{
-						if(currentChar != '>')
-							currentTagContent += currentChar;
-						else
-						{
-							//Console.WriteLine("Tag: " + currentTag + ", Attributes: " + currentTagContent);
-							currentMethod = TagParseMethod.None;
-							currentState = ParserState.None;
-						}
+						if(currentChar == '>' && previousChar == '-')
+							currentLocation = ParserLocation.HTML;
+
+						continue; // Current character is inside a command or the last character of a comment, do nothing
 					}
-					else if(currentState == ParserState.None && currentMethod == TagParseMethod.Content)
+					else if(currentLocation == ParserLocation.String)
+					{
+						// If we're parsing tag content we want the string data
+						if(currentState == ParserState.TagAttributes || currentState == ParserState.Content)
+							currentTagContent += currentChar;
+
+						// Check if the string ends here
+						if(currentChar == '"')
+							currentLocation = ParserLocation.HTML;
+
+						continue; // Current character is inside a string or the last character of a string, do nothing
+					}
+					else if(ignoreTag)
 					{
 						if(currentChar != '<')
-							currentTagContent += currentChar;
-						else
-						{
-							//Console.WriteLine("Tag: " + currentTag + ", Content: " + currentTagContent);
-							currentMethod = TagParseMethod.None;
-							currentState = ParserState.TagOpen;
-
-							currentState = ParserState.TagOpen;
-							currentTag = "";
-							currentTagContent = "";
-						}
+							continue; // We're ignoring this tag until we find a new opening char, do nothing
+						
+						// New tag, let it flow through and continue with the code
+						ignoreTag = false;
 					}
-					else
+
+					// If we aren't ignoring this tag we continue whatever we want to continue
+					if(!ignoreTag)
 					{
-						if(currentState == ParserState.Comment)
+						switch(currentChar)
 						{
-							if(currentChar == '>' && previousChar[0] == '-' && previousChar[1] == '-')
-								currentState = previousState;
+							case '<':
+								if(currentState == ParserState.Content)
+								{
+									//Console.WriteLine("Tag: " + currentTag + ", Content: " + currentTagContent);
+								}
+									
 
-							continue; // Current character is inside a command or the last character of a comment, do nothing
-						}
-						else if(currentState == ParserState.String)
-						{
-							if(currentChar == '"')
-								currentState = previousState;
+								currentState = ParserState.TagOpen;
+								currentTag = "";
+								currentTagContent = "";
+								break;
+							case '>':
+								if(currentState == ParserState.TagAttributes || currentState == ParserState.Content)
+								{
+									//Console.WriteLine("Tag: " + currentTag + ", Attributes: " + currentTagContent);
+								}
 
-							continue; // Current character is inside a string or the last character of a string, do nothing
-						}
-						else if(ignoreTag)
-						{
-							if(currentChar != '<')
-								continue; // We're ignoring this tag until we find a new opening char, do nothing
-
-							// New tag, let it flow through and continue with the code
-							ignoreTag = false;
-						}
-
-						if(!ignoreTag)
-						{
-							switch(currentChar)
-							{
-								case '<':
-									currentState = ParserState.TagOpen;
-									currentTag = "";
-									currentTagContent = "";
-									break;
-								case '-':
-									// There are tags like <!DOCTYPE, so we can't just check for !
-									if(previousChar[0] == '!')
-									{
-										if(currentState == ParserState.TagOpen)
-											previousState = currentState;
-										currentState = ParserState.Comment;
-									}
-									break;
-								case '"':
-									currentState = ParserState.String;
-									break;
-								case '/':
+								currentState = ParserState.None;
+								tagIndex = IsWantedTag(currentTag);
+								if(tagIndex == -1)
+									ignoreTag = true;
+								else
+									currentState = searchTags[tagIndex].parseMethod;
+								break;
+							case '-':
+								// There are tags like <!DOCTYPE, so we can't just check for !
+								if(previousChar == '!')
+								{
 									if(currentState == ParserState.TagOpen)
-										ignoreTag = true;
-									break;
-								case '>':
-									currentState = ParserState.None;
-									tagIndex = IsWantedTag(currentTag);
-									ignoreTag = !(tagIndex >= 0);
+									{
+										currentState = ParserState.TagName;
+										currentLocation = ParserLocation.Comment;
+									}
+								}
+								break;
+							case '"':
+								currentLocation = ParserLocation.String;
 
-									if(tagIndex != -1)
-										currentMethod = searchTags[tagIndex].parseMethod;
-									break;
-								default:
-									// We can skip this whole block if the tag is being ignored
+								if(currentState == ParserState.TagAttributes || currentState == ParserState.Content)
+									currentTagContent += '"';
+								break;
+							case '/':
+								if(currentState == ParserState.TagOpen)
+									ignoreTag = true;
+								break;
+							default:
+								// If we're parsing tag content we want these characters
+								if(currentState == ParserState.TagAttributes || currentState == ParserState.Content)
+									currentTagContent += currentChar;
+								else
+								{
+									// If the parser is at a tag open '<' and the next character is not a whitespace, then we're reading the tag name
 									if(currentState == ParserState.TagOpen)
 									{
 										if(!Char.IsWhiteSpace(currentChar))
 											currentState = ParserState.TagName;
 									}
 
+									// If we're at the tag name we want to store that in a variable
 									if(currentState == ParserState.TagName)
 									{
 										if(!Char.IsWhiteSpace(currentChar))
@@ -374,19 +385,22 @@ namespace URLPreviewLib
 										else
 										{
 											tagIndex = IsWantedTag(currentTag);
-											ignoreTag = !(tagIndex >= 0);
-
-											if(tagIndex != -1)
-												currentMethod = searchTags[tagIndex].parseMethod;
-
-											// If we want the attributes we should start parsing right away, otherwise wait for '>'
-											if(currentMethod == TagParseMethod.Attributes)
-												currentState = ParserState.TagAttributes;
+											if(tagIndex == -1)
+												ignoreTag = true;
+											else
+												currentState = searchTags[tagIndex].parseMethod;
 										}
 									}
-									break;
-							}
+								}
+								break;
 						}
+					}
+					
+
+
+					if(conditionMetTitle && conditionMetImage)
+					{
+						return preview;
 					}
 				}
 			
