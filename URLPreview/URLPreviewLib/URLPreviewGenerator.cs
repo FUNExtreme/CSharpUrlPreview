@@ -251,12 +251,14 @@ namespace URLPreviewLib
 			//try 
 			//{
 				bool ignoreTag = false;
+				int tagIndex = -1;
 				ParserState previousState = ParserState.None;
 				ParserState currentState = ParserState.None;
+				TagParseMethod currentMethod = TagParseMethod.None;
 				char[] previousChar = { 'a', 'a' };
 				char currentChar = 'a';
 				string currentTag = "";
-				string currentTagProperties = "";
+				string currentTagContent = "";
 
 				for(int x = 0; x < strLength; x ++)
 				{
@@ -294,7 +296,7 @@ namespace URLPreviewLib
 							case '<':
 								currentState = ParserState.TagOpen;
 								currentTag = "";
-								currentTagProperties = "";
+								currentTagContent = "";
 								break;
 							case '!':
 								if(currentState == ParserState.TagOpen)
@@ -310,7 +312,9 @@ namespace URLPreviewLib
 								break;
 							case '>':
 								currentState = ParserState.None;
-								ignoreTag = !IsWantedTag(currentTag);
+								tagIndex = IsWantedTag(currentTag);
+								currentMethod = searchTags[tagIndex].parseMethod;
+								ignoreTag = !(tagIndex >= 0);
 								break;
 							default:
 								// We can skip this whole block if the tag is being ignored
@@ -331,7 +335,9 @@ namespace URLPreviewLib
 									}
 									else
 									{
-										ignoreTag = !IsWantedTag(currentTag);
+										tagIndex = IsWantedTag(currentTag);
+										currentMethod = searchTags[tagIndex].parseMethod;
+										ignoreTag = !(tagIndex >= 0);
 									}
 								}
 								break;
@@ -350,7 +356,7 @@ namespace URLPreviewLib
 			return null;
 		}
 
-		private static bool IsWantedTag(string strTag)
+		private static int IsWantedTag(string strTag)
 		{
 			//Console.WriteLine(strTag);
 
@@ -367,12 +373,12 @@ namespace URLPreviewLib
 						{
 							// We've got a hit, stop comparing
 							//Console.WriteLine("Tag: " + strTag);
-							return true;
+							return x;
 						}
 					}
 				}
 			}
-			return false;
+			return -1;
 		}
 	}
 }
