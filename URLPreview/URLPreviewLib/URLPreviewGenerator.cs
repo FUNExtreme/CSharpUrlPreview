@@ -9,31 +9,40 @@ namespace URLPreviewLib
 	public static class URLPreviewGenerator
 	{
 		/// <summary>
+		/// A struct representing a tag to search for
+		/// </summary>
+		private struct SearchTag
+		{
+			public string tag;
+			public TagParseMethod parseMethod;
+		}
+
+		/// <summary>
 		/// The tags we'll be searching for
 		/// IMPORTANT: order by length
 		/// </summary>
-		private static String[] strSearchTags = 
+		private static SearchTag[] searchTags = 
 		{
-			"title",
-			"head",
-			"meta",
-			"img"
+			new SearchTag {tag = "title", parseMethod = TagParseMethod.Content},
+			new SearchTag {tag = "head", parseMethod = TagParseMethod.None},
+			new SearchTag {tag = "meta", parseMethod = TagParseMethod.Attributes},
+			new SearchTag {tag = "img", parseMethod = TagParseMethod.Attributes}
 		};
 
 		/// <summary>
 		/// The length of the longest tag we'll be searching for
 		/// </summary>
-		private static int iLongestSearchTag = strSearchTags[0].Length;
+		private static int iLongestSearchTag = searchTags[0].tag.Length;
 
 		/// <summary>
 		/// The length of the shortest tag we'll be searching for
 		/// </summary>
-		private static int iShortestSearchTag = strSearchTags[strSearchTags.Length - 1].Length;
+		private static int iShortestSearchTag = searchTags[searchTags.Length - 1].tag.Length;
 
 		/// <summary>
 		/// The amount of tags
 		/// </summary>
-		private static int iSearchTagsAmount = strSearchTags.Length;
+		private static int iSearchTagsAmount = searchTags.Length;
 
 		/// <summary>
 		/// Byte enum of all the states the parser can have
@@ -45,7 +54,17 @@ namespace URLPreviewLib
 			TagName,
 			TagProperties,
 			String,
-			Comment,
+			Comment
+		}
+
+		/// <summary>
+		/// Byte enum of the ways a tag could be parsed
+		/// </summary>
+		private enum TagParseMethod : byte
+		{
+			None,
+			Attributes,
+			Content,
 		}
 
 		/// <summary>
@@ -103,6 +122,7 @@ namespace URLPreviewLib
 			return null;
 		}
 
+		#region ParseResponseStream UNUSED UNTIL I OPTIMISE ParseResponseString
 		/// <summary>
 		/// Parses the given response stream, only handles whatever is needed for previews.
 		/// The following code is not written for readability, but for speed. So nothing is split up into seperate functions, function calls are slow
@@ -180,7 +200,6 @@ namespace URLPreviewLib
 										Console.WriteLine("Empty tag 2");
 									break;
 								default:
-									// We can skip this whole block if the tag is being ignored
 									if(currentState == ParserState.TagOpen)
 									{
 										if(!Char.IsWhiteSpace(currentChar))
@@ -216,6 +235,7 @@ namespace URLPreviewLib
 
 			return null;
 		}
+		#endregion
 
 		private static Preview ParseResponseString(String str)
 		{
@@ -340,10 +360,10 @@ namespace URLPreviewLib
 				for(int x = 0; x < iSearchTagsAmount; x++)
 				{
 					// Do a length tag, this is way faster than a normal compare
-					if(strSearchTags[x].Length == strTag.Length)
+					if(searchTags[x].tag.Length == strTag.Length)
 					{
 						// Do a proper compare, Ordinal is the fastest
-						if(string.Equals(strSearchTags[x], strTag, StringComparison.OrdinalIgnoreCase))
+						if(string.Equals(searchTags[x].tag, strTag, StringComparison.OrdinalIgnoreCase))
 						{
 							// We've got a hit, stop comparing
 							//Console.WriteLine("Tag: " + strTag);
