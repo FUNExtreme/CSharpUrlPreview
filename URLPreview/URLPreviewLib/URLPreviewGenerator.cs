@@ -72,7 +72,7 @@ namespace URLPreviewLib
 		/// </summary>
 		/// <param name="strUrl">The url to generate a preview for</param>
 		/// <returns>A preview object, null if invalid url</returns>
-		public static Preview CreatePreview(string strUrl)
+		public static URLPreview CreatePreview(string strUrl)
 		{
 			// Prepare a web request
 			WebRequest request = WebRequest.Create(strUrl);
@@ -84,7 +84,7 @@ namespace URLPreviewLib
 			if(response.ContentType.Contains("text/html"))
 			{
 				Stream responseStream = response.GetResponseStream();
-				Preview result = null;
+				URLPreview result = null;
 
 				/*
 				Stream[] streams = new Stream[10000];
@@ -128,7 +128,7 @@ namespace URLPreviewLib
 		/// The following code is not written for readability, but for speed. So nothing is split up into seperate functions, function calls are slow
 		/// </summary>
 		/// <param name="sResponse">The stream to read from</param>
-		private static Preview ParseResponseStream(Stream oResponse)
+		private static URLPreview ParseResponseStream(Stream oResponse)
 		{
 			bool conditionMetTitle = false;
 			bool conditionMetImage = false;
@@ -237,7 +237,7 @@ namespace URLPreviewLib
 		}
 		#endregion
 
-		private static Preview ParseResponseString(String str)
+		private static URLPreview ParseResponseString(String str)
 		{
 			bool conditionMetTitle = false;
 			bool conditionMetImage = false;

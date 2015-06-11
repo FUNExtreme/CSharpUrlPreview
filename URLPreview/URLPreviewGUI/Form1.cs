@@ -22,7 +22,7 @@ namespace URLPreviewGUI
 		private void buttonPreview_Click(object sender, EventArgs e)
 		{
 			Stopwatch swWatch = Stopwatch.StartNew();
-			Preview result = URLPreviewGenerator.CreatePreview(this.textBox1.Text);
+			URLPreview result = URLPreviewGenerator.CreatePreview(this.textBox1.Text);
 			swWatch.Stop();
 			this.labelTitle.Text = swWatch.ElapsedMilliseconds.ToString();
 		}
