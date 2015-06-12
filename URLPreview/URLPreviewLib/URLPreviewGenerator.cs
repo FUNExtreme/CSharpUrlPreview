@@ -19,12 +19,12 @@ namespace URLPreviewLib
 
 		/// <summary>
 		/// The tags we'll be searching for
-		/// IMPORTANT: order by length
+		/// IMPORTANT: order by length, longest first
+		/// IMPORTANT: if you add new searchtags you still need to handle them yourself, there is too much difference between tags to create a method that works for all (CTRL+F for ContentParser)
 		/// </summary>
 		private static SearchTag[] searchTags = 
 		{
 			new SearchTag {tag = "title", parseMethod = ParserState.Content},
-			new SearchTag {tag = "head", parseMethod = ParserState.None},
 			new SearchTag {tag = "meta", parseMethod = ParserState.TagAttributes},
 			new SearchTag {tag = "img", parseMethod = ParserState.TagAttributes}
 		};
@@ -317,26 +317,32 @@ namespace URLPreviewLib
 							case '<':
 								if(currentState == ParserState.Content)
 								{
+									ContentParser(preview, currentTag, currentTagContent);
 									//Console.WriteLine("Tag: " + currentTag + ", Content: " + currentTagContent);
 								}
-									
 
 								currentState = ParserState.TagOpen;
 								currentTag = "";
 								currentTagContent = "";
 								break;
 							case '>':
-								if(currentState == ParserState.TagAttributes || currentState == ParserState.Content)
+								if(currentState == ParserState.TagAttributes)
 								{
+									ContentParser(preview, currentTag, currentTagContent);
+									currentState = ParserState.None;
 									//Console.WriteLine("Tag: " + currentTag + ", Attributes: " + currentTagContent);
 								}
-
-								currentState = ParserState.None;
-								tagIndex = IsWantedTag(currentTag);
-								if(tagIndex == -1)
-									ignoreTag = true;
 								else
-									currentState = searchTags[tagIndex].parseMethod;
+								{
+									tagIndex = IsWantedTag(currentTag);
+									if(tagIndex == -1)
+									{
+										currentState = ParserState.None;
+										ignoreTag = true;
+									}	
+									else
+										currentState = searchTags[tagIndex].parseMethod;
+								}
 								break;
 							case '-':
 								// There are tags like <!DOCTYPE, so we can't just check for !
@@ -398,7 +404,7 @@ namespace URLPreviewLib
 					
 
 
-					if(conditionMetTitle && conditionMetImage)
+					if(preview.PreferredTitle && preview.PreferredImageUrl && preview.PreferredDescription)
 					{
 						return preview;
 					}
@@ -412,13 +418,16 @@ namespace URLPreviewLib
 			//	return null; 
 			//}	
 
-			return null;
+			return preview;
 		}
 
+		/// <summary>
+		/// Checks if the tag is one we want
+		/// </summary>
+		/// <param name="strTag">The tag to check</param>
+		/// <returns></returns>
 		private static int IsWantedTag(string strTag)
 		{
-			//Console.WriteLine(strTag);
-
 			// Only check tags that have the minimum required length
 			if(strTag.Length > iShortestSearchTag)
 			{
@@ -438,6 +447,68 @@ namespace URLPreviewLib
 				}
 			}
 			return -1;
+		}
+
+		private static void ContentParser(URLPreview destinationPreview, string tag, string strContent)
+		{
+			int tagLength = tag.Length;
+			
+			// Title, Description and ImageUrl in meta og tags
+			if(tagLength == "meta".Length)
+			{
+				int indexOfOg = strContent.IndexOf("og:")+3;
+				if(indexOfOg != -1)
+				{
+					int indexOfContentValueStart = strContent.IndexOf("content")+9;
+					int contentValueLength = (strContent.IndexOf("\"", indexOfContentValueStart) - indexOfContentValueStart);
+					if(indexOfContentValueStart != -1)
+					{ 
+						int indexOfProperty = strContent.IndexOf("title", indexOfOg, 5);
+						if(indexOfProperty != -1)
+						{
+							destinationPreview.Title = strContent.Substring(indexOfContentValueStart, contentValueLength);
+							destinationPreview.PreferredTitle = true;
+							return;
+						}
+
+						indexOfProperty = strContent.IndexOf("description", indexOfOg, 11);
+						if(indexOfProperty != -1)
+						{
+							destinationPreview.Description = strContent.Substring(indexOfContentValueStart, contentValueLength);
+							destinationPreview.PreferredDescription = true;
+							return;
+						}
+
+						indexOfProperty = strContent.IndexOf("image", indexOfOg, 5);
+						if(indexOfProperty != -1)
+						{
+							destinationPreview.ImageUrl = strContent.Substring(indexOfContentValueStart, contentValueLength);
+							destinationPreview.PreferredImageUrl = true;
+							return;
+						}
+					}
+				}
+			}
+			// Title
+			else if(tagLength == "title".Length)
+			{
+				destinationPreview.Title = strContent;
+			}
+			// ImageUrl
+			else if(tagLength == "img".Length)
+			{
+				int indexOfSrc = strContent.IndexOf("src");
+				if(indexOfSrc != -1)
+				{
+					int indexOfContentValueStart = indexOfSrc + 5;
+					int contentValueLength = (strContent.IndexOf("\"", indexOfContentValueStart) - indexOfContentValueStart);
+					if(indexOfContentValueStart != -1)
+					{
+						destinationPreview.ImageUrl = strContent.Substring(indexOfContentValueStart, contentValueLength);
+						return;
+					}
+				}
+			}
 		}
 	}
 }

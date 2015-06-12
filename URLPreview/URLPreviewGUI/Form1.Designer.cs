@@ -31,9 +31,10 @@
 			this.textBox1 = new System.Windows.Forms.TextBox();
 			this.buttonPreview = new System.Windows.Forms.Button();
 			this.groupBox1 = new System.Windows.Forms.GroupBox();
-			this.pictureBoxPreview = new System.Windows.Forms.PictureBox();
-			this.labelTitle = new System.Windows.Forms.Label();
 			this.linkLabelUrl = new System.Windows.Forms.LinkLabel();
+			this.labelTitle = new System.Windows.Forms.Label();
+			this.pictureBoxPreview = new System.Windows.Forms.PictureBox();
+			this.labelDescription = new System.Windows.Forms.Label();
 			this.groupBox1.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.pictureBoxPreview)).BeginInit();
 			this.SuspendLayout();
@@ -57,23 +58,26 @@
 			// 
 			// groupBox1
 			// 
+			this.groupBox1.Controls.Add(this.labelDescription);
 			this.groupBox1.Controls.Add(this.linkLabelUrl);
 			this.groupBox1.Controls.Add(this.labelTitle);
 			this.groupBox1.Controls.Add(this.pictureBoxPreview);
-			this.groupBox1.Location = new System.Drawing.Point(13, 72);
+			this.groupBox1.Location = new System.Drawing.Point(13, 42);
 			this.groupBox1.Name = "groupBox1";
-			this.groupBox1.Size = new System.Drawing.Size(338, 176);
+			this.groupBox1.Size = new System.Drawing.Size(338, 206);
 			this.groupBox1.TabIndex = 2;
 			this.groupBox1.TabStop = false;
 			this.groupBox1.Text = "Preview";
 			// 
-			// pictureBoxPreview
+			// linkLabelUrl
 			// 
-			this.pictureBoxPreview.Location = new System.Drawing.Point(16, 20);
-			this.pictureBoxPreview.Name = "pictureBoxPreview";
-			this.pictureBoxPreview.Size = new System.Drawing.Size(301, 98);
-			this.pictureBoxPreview.TabIndex = 0;
-			this.pictureBoxPreview.TabStop = false;
+			this.linkLabelUrl.AutoSize = true;
+			this.linkLabelUrl.Location = new System.Drawing.Point(16, 181);
+			this.linkLabelUrl.Name = "linkLabelUrl";
+			this.linkLabelUrl.Size = new System.Drawing.Size(55, 13);
+			this.linkLabelUrl.TabIndex = 3;
+			this.linkLabelUrl.TabStop = true;
+			this.linkLabelUrl.Text = "linkLabel1";
 			// 
 			// labelTitle
 			// 
@@ -84,15 +88,23 @@
 			this.labelTitle.TabIndex = 1;
 			this.labelTitle.Text = "label1";
 			// 
-			// linkLabelUrl
+			// pictureBoxPreview
 			// 
-			this.linkLabelUrl.AutoSize = true;
-			this.linkLabelUrl.Location = new System.Drawing.Point(16, 145);
-			this.linkLabelUrl.Name = "linkLabelUrl";
-			this.linkLabelUrl.Size = new System.Drawing.Size(55, 13);
-			this.linkLabelUrl.TabIndex = 3;
-			this.linkLabelUrl.TabStop = true;
-			this.linkLabelUrl.Text = "linkLabel1";
+			this.pictureBoxPreview.Location = new System.Drawing.Point(16, 20);
+			this.pictureBoxPreview.Name = "pictureBoxPreview";
+			this.pictureBoxPreview.Size = new System.Drawing.Size(301, 98);
+			this.pictureBoxPreview.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+			this.pictureBoxPreview.TabIndex = 0;
+			this.pictureBoxPreview.TabStop = false;
+			// 
+			// labelDescription
+			// 
+			this.labelDescription.AutoSize = true;
+			this.labelDescription.Location = new System.Drawing.Point(19, 142);
+			this.labelDescription.Name = "labelDescription";
+			this.labelDescription.Size = new System.Drawing.Size(35, 13);
+			this.labelDescription.TabIndex = 4;
+			this.labelDescription.Text = "label1";
 			// 
 			// Form1
 			// 
@@ -120,6 +132,7 @@
 		private System.Windows.Forms.LinkLabel linkLabelUrl;
 		private System.Windows.Forms.Label labelTitle;
 		private System.Windows.Forms.PictureBox pictureBoxPreview;
+		private System.Windows.Forms.Label labelDescription;
 	}
 }
 

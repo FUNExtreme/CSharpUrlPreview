@@ -21,10 +21,10 @@ namespace URLPreviewGUI
 
 		private void buttonPreview_Click(object sender, EventArgs e)
 		{
-			Stopwatch swWatch = Stopwatch.StartNew();
 			URLPreview result = URLPreviewGenerator.CreatePreview(this.textBox1.Text);
-			swWatch.Stop();
-			this.labelTitle.Text = swWatch.ElapsedMilliseconds.ToString();
+			this.labelTitle.Text = result.Title;
+			this.labelDescription.Text = (result.Description != null) ? result.Description : "Skipped";
+			this.pictureBoxPreview.Load(result.ImageUrl);
 		}
 	}
 }
